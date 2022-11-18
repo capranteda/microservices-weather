@@ -23,14 +23,24 @@ app.MapGet("/observation/{zip}", async (string zip, [FromQuery] int? days, Preci
     {
         return Results.BadRequest("Please provide a 'days' query parameter between 1 and 30.");
     }
+
     var startDate = DateTime.UtcNow - TimeSpan.FromDays(days.Value);
     var results = await db.Precipitation
         .Where(precip => precip.ZipCode == zip && precip.CreatedOn > startDate)
         .ToListAsync();
-    
+
     return Results.Ok(results);
 });
 
+app.MapPost("/observation", async (Precipitation precip, PreciptDbContext db) =>
+{
+    //ToUniversalTime is used to convert the time to UTC
+    precip.CreatedOn = precip.CreatedOn.ToUniversalTime();
+    //AddAsync does not save the changes to the database. What it does is add the entity to the DbContext
+    await db.AddAsync(precip);
+    //SaveChangesAsync saves the changes to the database
+    await db.SaveChangesAsync();
+});
 
 
 app.Run();
